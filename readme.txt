@@ -1,1 +1,1 @@
-PieChess is a chess game programming in Python 3.
+PieChess is a chess game programmed in Python 3.
