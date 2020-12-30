@@ -1,10 +1,15 @@
-# Today, we want to end with a functioning 2x2 game board and queen.
-
-# [Row Change, Column Change]
-# Since we print later rows lower, [1, 0] is down.
-
+BISHOP_NORMALIZED_MOVES = set([(1, 1), (1, -1), (-1, 1), (-1, -1)])
 QUEEN_NORMALIZED_MOVES = set([(1, 0), (-1, 0), (0, -1),
     (0, 1), (1, 1), (1, -1), (-1, 1), (-1, -1)])
+ROOK_NORMALIZED_MOVES = set([(1, 0), (-1, 0), (0, -1),
+    (0, 1)])
+KING_MOVES = set([(1, 0), (-1, 0), (0, -1),
+    (0, 1), (1, 1), (1, -1), (-1, 1), (-1, -1)])
+KNIGHT_MOVES = set([(-2, 1), (-2, -1), (2, 1), (2, -1), (1, 2), (1, -2), (-1, 2), (-1, -2)])
+PAWN_MOVES = set([(-1, 0)]) # TODO: Handle pawn directionality
+# Map of piece_type -> (piece_moves, moves_are_normalized)
+MOVE_DICTIONARY = {'B': (BISHOP_NORMALIZED_MOVES, True), 'Q': (QUEEN_NORMALIZED_MOVES, True),
+ 'R': (ROOK_NORMALIZED_MOVES, True), 'K': (KING_MOVES, False), 'H': (KNIGHT_MOVES, False), 'P': (PAWN_MOVES, False)}
 
 def normalize_move(move):
     assert move[0] != 0 or move[1] != 0
@@ -22,13 +27,13 @@ def get_target_indices(board_size, file, rank):
     return row, column
 
 # Hint - You might want to make your board a 2D list.
-def find_queen(board):
-    queen_place = None
+def find_piece(board):
+    place = None
     for row_index, row in enumerate(board):
         for column_index, value in enumerate(row):
-            if value == 'Q':
-                queen_place = row_index, column_index
-    return queen_place
+            if value != 'X':
+                place = row_index, column_index
+    return place
 
 def is_valid_move(board, file, rank):
     """
@@ -36,19 +41,22 @@ def is_valid_move(board, file, rank):
     """
     # Fix all the inputs that use is_valid_move
     target_place = get_target_indices(len(board), file, rank)
-    queen_place = find_queen(board)
-    move_required = target_place[0] - queen_place[0], target_place[1] - queen_place[1]
-    return normalize_move(move_required) in QUEEN_NORMALIZED_MOVES
+    place = find_piece(board)
+    move_required = target_place[0] - place[0], target_place[1] - place[1]
+    piece_correct_moves, normalized = MOVE_DICTIONARY[board[place[0]][place[1]]]
+    if normalized:
+        return normalize_move(move_required) in piece_correct_moves
+    return move_required in piece_correct_moves
 
 def get_valid_moves(board):
     available_moves = []
     file = 'A'
-    queen_position = find_queen(board)
+    position = find_piece(board)
     for _ in range(len(board)):
         for j in range(len(board)):
             rank = j + 1
-            row_index, coloumn_index = get_target_indices(len(board), file, rank)
-            if queen_position[0] == row_index and queen_position[1] == coloumn_index:
+            row_index, column_index = get_target_indices(len(board), file, rank)
+            if position[0] == row_index and position[1] == column_index:
                 continue
             if is_valid_move(board, file, rank):
                 available_moves.append(f'{file}{rank}')
@@ -76,28 +84,31 @@ def print_board(board):
 
 def apply_move(board, file, rank):
     assert is_valid_move(board, file, rank)
-    queen_position = find_queen(board)
-    board[queen_position[0]][queen_position[1]] = 'X'
+    position = find_piece(board)
+    piece_variable = board[position[0]][position[1]]
+    board[position[0]][position[1]] = 'X'
     new_row, new_column = get_target_indices(len(board), file, rank)
-    board[new_row][new_column] = 'Q'
+    board[new_row][new_column] = piece_variable
 
-def create_board(size):
+def create_board(size, user_piece_input):
     l = []
     for _ in range(size):
         row = []
         for _ in range(size):
             row.append('X')
         l.append(row)
-    l[0][0] = 'Q'
+    l[size - 1][0] = user_piece_input
     return l
 
 def validate_user_input(user_input):
-    return not len(user_input) > 2
+    return len(user_input) == 2
 
 def main():
     print('Enter board size!')
     user_board_input = input()
-    board = create_board(int(user_board_input))
+    print('Enter a piece!')
+    user_piece_input = input()
+    board = create_board(int(user_board_input), user_piece_input)
     print("Welcome to PieChess!")
     print_board(board)
     while True:
